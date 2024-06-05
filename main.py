@@ -1,5 +1,7 @@
 from bs4 import BeautifulSoup
 import requests
+import time
+from selenium.webdriver import ActionChains
 
 def getProductLinks():
     laptop_links = []
@@ -55,3 +57,21 @@ def getProductSellerName(soup):
 def getProductCommentAmount(soup):
     comment_amount = soup.find('p', class_="p-reviews-comment-count").text[:-6]
     return comment_amount
+
+def getProductQuestionAmount(soup):
+    question_amount = soup.find('span', class_="question-tag__count").text[1:-1]
+    return question_amount
+
+def getProductRatings(driver):
+    star_amounts = []
+    element_to_hover_over = driver.find_element(By.CLASS_NAME, 'review-tooltip')
+    hover = ActionChains(driver).move_to_element(element_to_hover_over)
+    hover.perform()
+    time.sleep(1)
+    soup = BeautifulSoup(driver.page_source, 'html.parser')
+    tooltip_content = soup.find('div', class_='review-tooltip-content')
+    star_amounts_div = tooltip_content.find_all('div', class_="pr-rnr-st-c")
+    for amount in star_amounts_div:
+        star_amounts.append(amount.text)
+
+    return star_amounts
