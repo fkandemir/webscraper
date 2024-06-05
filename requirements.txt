@@ -1,0 +1,5 @@
+### requirements.txt
+
+beautifulsoup4==4.12.3
+requests==2.29.0
+selenium==4.21.0
