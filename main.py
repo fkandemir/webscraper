@@ -1,10 +1,38 @@
 from bs4 import BeautifulSoup
 import requests
-import time
+import json
+from selenium import webdriver
 from selenium.webdriver import ActionChains
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+import time
+import os
 
+counter = 0
+
+
+def createProductFolder(folder_name):
+    os.chdir('products')
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
+    os.chdir(folder_name)
+    if not os.path.exists("images"):
+        os.makedirs("images")
+    os.chdir('images')
+    return
+
+
+def saveProductInfo(product_info, folder_name):
+    os.chdir("..")
+    with open("product_info.json", 'w') as json_file:
+        json.dump(product_info, json_file, indent=4)
+
+
+
+### LAPTOP LINKS AND RATINGS
 def getProductLinks():
     laptop_links = []
+    laptop_rating_amounts = []
     pi = 1
     condition = True
     while condition:
@@ -21,7 +49,53 @@ def getProductLinks():
             else:
                 condition = False
                 break
-    return laptop_links
+    return laptop_links#, laptop_rating_amounts
+
+def getProductDetails(links):
+    driver = webdriver.Chrome()
+    comment_section_links = []
+    counter = 0
+    for link in links:
+        product_info = {}
+        folder_name = f"laptop_{str(counter + 1)}"
+        driver.get(f"https://www.trendyol.com{link}")
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        #print(f"Title: {getProductTitles(soup)}")
+        #comment_section_links.append(getProductCommentLink(soup))
+        comment_section_link = getProductCommentLink(soup)
+        #print(f"Price: {getProductPrice(soup)}")
+        #print(f"Review Count: {getProductReviewCount(soup)}")
+        #print(f"Rating Score: {getProductRatingScore(soup)}")
+        #print(f"Favourites Amount: {getProductFavAmount(soup)}")
+        #print(f"Seller Name: {getProductSellerName(soup)}")
+        #print(f"Comments Amount: {getProductCommentAmount(soup)}")
+        #print(f"Questions Amount: {getProductQuestionAmount(soup)}")
+        #print(f"Ratings Distribution: {getProductRatings(driver)}")
+        #one_star_comments, five_star_comments = getOneStarComments(driver, comment_section_link)
+        createProductFolder(folder_name)
+        getProductPictures(driver, folder_name)
+        product_info = {
+              "title": getProductTitle(soup),
+              "price": getProductPrice(soup),
+              "Review Count": getProductReviewCount(soup),
+              "Rating Score": getProductRatingScore(soup),
+              "Favourites Amount": getProductFavAmount(soup),
+              "Seller Name": getProductSellerName(soup),
+              "Comments Amount": getProductCommentAmount(soup),
+              "Questions Amount": getProductQuestionAmount(soup),
+              "Ratings Distribution": getProductRatings(driver),
+              "Comments": getComments(driver, comment_section_link)
+              #"Five Star Comments": five_star_comments
+}
+        saveProductInfo(product_info, folder_name)
+        for i in range(2):
+            os.chdir('..')
+        counter += 1
+        if counter == 2: break
+    #print(comment_section_links)
+    driver.quit()
+    return #comment_section_links
+
 
 def getProductTitle(soup):
     title = soup.find('h1', class_="pr-new-br")
@@ -75,6 +149,7 @@ def getProductRatings(driver):
         star_amounts.append(amount.text)
 
     return star_amounts
+
 
 def downloadImage(image_url, save_path):
     response = requests.get(image_url)
@@ -139,3 +214,11 @@ def getCommentImages(comment, index, star):
             image_filename = f"{star}star_comment_{index + 1}_image_{image_index + 1}.jpg"
             downloadImage(image_url, image_filename)
             #print(image_url)
+
+LINKS = getProductLinks()
+getProductDetails(LINKS)
+
+
+
+
+
