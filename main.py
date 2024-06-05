@@ -75,3 +75,67 @@ def getProductRatings(driver):
         star_amounts.append(amount.text)
 
     return star_amounts
+
+def downloadImage(image_url, save_path):
+    response = requests.get(image_url)
+    if response.status_code == 200:
+        with open(save_path, 'wb') as f:
+            f.write(response.content)
+
+
+def getProductPictures(driver, folder_name):
+    divs = driver.find_elements(By.CLASS_NAME, 'product-slide')
+    image_urls = []
+    for div in divs:
+        if "product-slide video-player" in div.get_attribute('class'):
+            continue
+        img = div.find_element(By.TAG_NAME, 'img')
+        image_urls.append(img.get_attribute('src'))
+
+    for index, url in enumerate(image_urls):
+        downloadImage(url, f'product_image_{index}.jpg')
+
+
+
+### COMMENT FILTERS
+def getComments(driver, link):
+    comments_array = []
+    for i in [4,0]:
+        counter = 0
+        driver.get(f"https://www.trendyol.com{link}")
+        driver.execute_script("window.scrollBy(0, document.body.scrollHeight * 0.1);")
+        time.sleep(2)
+        divs = driver.find_elements(By.CLASS_NAME, 'ps-stars__content')
+
+        divs[i].click()
+        if i == 4: star = 1
+        else: star = 5
+        time.sleep(2)
+        for i in range(3):
+            driver.execute_script("window.scrollBy(0, document.body.scrollHeight * 0.99);")
+            time.sleep(3)
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        comments = soup.find_all('div', class_="comment")
+        time.sleep(3)
+        for index, comment in enumerate(comments):
+            counter += 1
+            comment_content = comment.find('div', class_='comment-text').text
+            thumps_up_amount = comment.find('div', class_="rnr-com-like").text[1:-1]
+            comments_array.append(comment_content)
+            getCommentImages(comment, index, star)
+            #extract_and_download_images(driver)
+            if counter >= 100:
+                break
+        comments_array.append(counter)
+    return comments_array
+
+
+def getCommentImages(comment, index, star):
+    comment_photos = comment.find('div', class_='comment-photos')
+    if comment_photos:
+        review_images = comment_photos.find_all('div', class_='item review-image')
+        for image_index, review_image in enumerate(review_images):
+            image_url = review_image.get('style', '')[23:-3]
+            image_filename = f"{star}star_comment_{index + 1}_image_{image_index + 1}.jpg"
+            downloadImage(image_url, image_filename)
+            #print(image_url)
