@@ -3,15 +3,14 @@ import requests
 import json
 from selenium import webdriver
 from selenium.webdriver import ActionChains
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 import time
 import os
 
-counter = 0
-
 
 def createProductFolder(folder_name):
+    if not os.path.exists("products"):
+        os.makedirs("products")
     os.chdir('products')
     if not os.path.exists(folder_name):
         os.makedirs(folder_name)
@@ -22,7 +21,7 @@ def createProductFolder(folder_name):
     return
 
 
-def saveProductInfo(product_info, folder_name):
+def saveProductInfo(product_info):
     os.chdir("..")
     with open("product_info.json", 'w') as json_file:
         json.dump(product_info, json_file, indent=4)
@@ -32,7 +31,6 @@ def saveProductInfo(product_info, folder_name):
 ### LAPTOP LINKS AND RATINGS
 def getProductLinks():
     laptop_links = []
-    laptop_rating_amounts = []
     pi = 1
     condition = True
     while condition:
@@ -49,29 +47,17 @@ def getProductLinks():
             else:
                 condition = False
                 break
-    return laptop_links#, laptop_rating_amounts
+    return laptop_links
 
 def getProductDetails(links):
     driver = webdriver.Chrome()
-    comment_section_links = []
     counter = 0
     for link in links:
         product_info = {}
         folder_name = f"laptop_{str(counter + 1)}"
         driver.get(f"https://www.trendyol.com{link}")
         soup = BeautifulSoup(driver.page_source, 'html.parser')
-        #print(f"Title: {getProductTitles(soup)}")
-        #comment_section_links.append(getProductCommentLink(soup))
         comment_section_link = getProductCommentLink(soup)
-        #print(f"Price: {getProductPrice(soup)}")
-        #print(f"Review Count: {getProductReviewCount(soup)}")
-        #print(f"Rating Score: {getProductRatingScore(soup)}")
-        #print(f"Favourites Amount: {getProductFavAmount(soup)}")
-        #print(f"Seller Name: {getProductSellerName(soup)}")
-        #print(f"Comments Amount: {getProductCommentAmount(soup)}")
-        #print(f"Questions Amount: {getProductQuestionAmount(soup)}")
-        #print(f"Ratings Distribution: {getProductRatings(driver)}")
-        #one_star_comments, five_star_comments = getOneStarComments(driver, comment_section_link)
         createProductFolder(folder_name)
         getProductPictures(driver, folder_name)
         product_info = {
@@ -85,16 +71,14 @@ def getProductDetails(links):
               "Questions Amount": getProductQuestionAmount(soup),
               "Ratings Distribution": getProductRatings(driver),
               "Comments": getComments(driver, comment_section_link)
-              #"Five Star Comments": five_star_comments
 }
-        saveProductInfo(product_info, folder_name)
+        saveProductInfo(product_info)
         for i in range(2):
             os.chdir('..')
         counter += 1
-        if counter == 2: break
-    #print(comment_section_links)
+        if counter == 1: break
     driver.quit()
-    return #comment_section_links
+    return
 
 
 def getProductTitle(soup):
@@ -158,7 +142,7 @@ def downloadImage(image_url, save_path):
             f.write(response.content)
 
 
-def getProductPictures(driver, folder_name):
+def getProductPictures(driver):
     divs = driver.find_elements(By.CLASS_NAME, 'product-slide')
     image_urls = []
     for div in divs:
@@ -196,9 +180,8 @@ def getComments(driver, link):
             counter += 1
             comment_content = comment.find('div', class_='comment-text').text
             thumps_up_amount = comment.find('div', class_="rnr-com-like").text[1:-1]
-            comments_array.append(comment_content)
+            comments_array.append([comment_content, int(thumps_up_amount)])
             getCommentImages(comment, index, star)
-            #extract_and_download_images(driver)
             if counter >= 100:
                 break
         comments_array.append(counter)
@@ -213,7 +196,6 @@ def getCommentImages(comment, index, star):
             image_url = review_image.get('style', '')[23:-3]
             image_filename = f"{star}star_comment_{index + 1}_image_{image_index + 1}.jpg"
             downloadImage(image_url, image_filename)
-            #print(image_url)
 
 LINKS = getProductLinks()
 getProductDetails(LINKS)
