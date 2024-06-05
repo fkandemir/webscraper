@@ -20,3 +20,22 @@ def getProductLinks():
                 condition = False
                 break
     return laptop_links
+
+def getProductTitle(soup):
+    title = soup.find('h1', class_="pr-new-br")
+    product_title = title.find('span').text
+    return product_title
+
+def getProductPrice(soup):
+    description = soup.find('div', class_="product-price-container")
+    price = description.find('span', class_="prc-dsc").text
+    return price
+
+def getProductCommentLink(soup):
+    div = soup.find('div', class_="rvw-cnt")
+    link = div.find('a', href=True)
+    return link['href']
+
+def getProductReviewCount(soup):
+    review_count = soup.find('span', class_="total-review-count").text
+    return review_count
