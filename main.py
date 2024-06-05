@@ -39,3 +39,19 @@ def getProductCommentLink(soup):
 def getProductReviewCount(soup):
     review_count = soup.find('span', class_="total-review-count").text
     return review_count
+
+def getProductRatingScore(soup):
+    rating = soup.find('div', class_="rating-line-count").text
+    return rating
+
+def getProductFavAmount(soup):
+    fav_amount = soup.find('span', class_="favorite-count").text
+    return fav_amount
+
+def getProductSellerName(soup):
+    seller_name = soup.find('a', class_="seller-name-text").text
+    return seller_name
+
+def getProductCommentAmount(soup):
+    comment_amount = soup.find('p', class_="p-reviews-comment-count").text[:-6]
+    return comment_amount
