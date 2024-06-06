@@ -7,6 +7,7 @@ from selenium.webdriver.common.by import By
 import time
 import os
 
+
 class Utilization:
 
     def __init__(self):
@@ -35,6 +36,26 @@ class Utilization:
         if response.status_code == 200:
             with open(save_path, 'wb') as f:
                 f.write(response.content)  # Download and save image
+
+    def create_output_jsonl(self):
+        os.chdir("products")
+        try:
+            current_dir = os.getcwd()
+            directories = [d for d in os.listdir(current_dir) if os.path.isdir(os.path.join(current_dir, d))]
+
+            os.chdir("..")
+            output_data = {}
+            for directory in directories:
+                output_data[directory] = os.path.join("/products", directory, "images")
+
+            with open("output.jsonl", "w") as f:
+                for key, value in output_data.items():
+                    json_line = json.dumps({key: value})
+                    f.write(json_line + "\n")
+        except Exception as e:
+            print(f"An error occurred while processing directories: {e}")
+            return
+
 
 class WebScraper:
     UTILIZATION_OBJECT = Utilization()
@@ -87,7 +108,6 @@ class WebScraper:
             for i in range(2):
                 os.chdir('..')  # Navigate back to the root directory
             counter += 1
-            break
         driver.quit()
         return
 
@@ -152,20 +172,21 @@ class WebScraper:
 
     def getComments(self, driver, link):
         comments_array = []
-        for i in [4, 0]:
+        my_index = 0
+        for i in range(2):
             counter = 0
             driver.get(f"https://www.trendyol.com{link}")
             driver.execute_script("window.scrollBy(0, document.body.scrollHeight * 0.1);")
-            time.sleep(2) # Wait for page to load
+            time.sleep(4) # Wait for page to load
             divs = driver.find_elements(By.CLASS_NAME, 'ps-stars__content')
-            divs[i].click()  # Click on the star rating filter
+            divs[my_index].click()  # Click on the star rating filter
             if i == 4:
                 star = 1
             else:
                 star = 5
             time.sleep(2) # Wait for page to load
             for i in range(3):
-                driver.execute_script("window.scrollBy(0, document.body.scrollHeight * 0.99);") # Scroll down to load more comments
+                driver.execute_script("window.scrollBy(0, document.body.scrollHeight * 0.95);") # Scroll down to load more comments
                 time.sleep(3)  # Wait for page to load
             soup = BeautifulSoup(driver.page_source, 'html.parser')
             comments = soup.find_all('div', class_="comment")
@@ -179,6 +200,7 @@ class WebScraper:
                 if counter >= 100:
                     break
             comments_array.append(counter)
+            my_index = len(divs)-1
         return comments_array
 
     def getCommentImages(self, comment, index, star):
@@ -193,6 +215,8 @@ class WebScraper:
     def initiateScraping(self):
         LINKS = self.getProductLinks()
         self.getProductDetails(LINKS)
+        self.UTILIZATION_OBJECT.create_output_jsonl()
+
 
 if __name__ == '__main__':
     web_scraper = WebScraper()
