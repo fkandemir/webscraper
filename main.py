@@ -7,34 +7,34 @@ from selenium.webdriver.common.by import By
 import time
 import os
 
-
 class Utilization:
 
     def __init__(self):
         pass
 
     def createProductFolder(self, folder_name):
+        # Create 'products' directory if it does not exist
         if not os.path.exists("products"):
             os.makedirs("products")
-        os.chdir('products')
+        os.chdir('products')  # Change to 'products' directory
         if not os.path.exists(folder_name):
-            os.makedirs(folder_name)
-        os.chdir(folder_name)
+            os.makedirs(folder_name)  # Create product folder if it does not exist
+        os.chdir(folder_name)  # Change to product folder
         if not os.path.exists("images"):
-            os.makedirs("images")
-        os.chdir('images')
+            os.makedirs("images")  # Create 'images' folder if it does not exist
+        os.chdir('images')  # Change to 'images' folder
         return
 
     def saveProductInfo(self, product_info):
-        os.chdir("..")
+        os.chdir("..")  # Change to product folder
         with open("product_info.json", 'w') as json_file:
-            json.dump(product_info, json_file, indent=4)
+            json.dump(product_info, json_file, indent=4)  # Save product info as JSON
+
     def downloadImage(self, image_url, save_path):
         response = requests.get(image_url)
         if response.status_code == 200:
             with open(save_path, 'wb') as f:
-                f.write(response.content)
-
+                f.write(response.content)  # Download and save image
 
 class WebScraper:
     UTILIZATION_OBJECT = Utilization()
@@ -42,24 +42,22 @@ class WebScraper:
     def __init__(self):
         pass
 
-    ### LAPTOP LINKS AND RATINGS
     def getProductLinks(self):
         laptop_links = []
-        pi = 1
+        pi = 1  # Page index
         condition = True
         while condition:
             link = f"https://www.trendyol.com/laptop-x-c103108?sst=MOST_RATED&pi={pi}"
             html_data = requests.get(link)
             soup = BeautifulSoup(html_data.content, 'html.parser')
             laptop_cards = soup.find_all('div', class_='p-card-wrppr with-campaign-view')
-            pi += 1
+            pi += 1  # Increment page index for next page
             for laptop in laptop_cards:
                 ratingCount = laptop.find('span', class_='ratingCount')
-                if int(ratingCount.text[1:-1]) >= 300:
-                    laptop_links.append(laptop.find('a').get('href'))
-                    #laptop_rating_amounts.append(int(ratingCount.text[1:-1]))
+                if int(ratingCount.text[1:-1]) >= 100:  # Check if rating count is 100 or more
+                    laptop_links.append(laptop.find('a').get('href'))  # Add laptop link
                 else:
-                    condition = False
+                    condition = False  # Exit loop if rating count is less than 100
                     break
         return laptop_links
 
@@ -75,77 +73,70 @@ class WebScraper:
             self.UTILIZATION_OBJECT.createProductFolder(folder_name)
             self.getProductPictures(driver)
             product_info = {
-                  "title": self.getProductTitle(soup),
-                  "price": self.getProductPrice(soup),
-                  "Review Count": self.getProductReviewCount(soup),
-                  "Rating Score": self.getProductRatingScore(soup),
-                  "Favourites Amount": self.getProductFavAmount(soup),
-                  "Seller Name": self.getProductSellerName(soup),
-                  "Comments Amount": self.getProductCommentAmount(soup),
-                  "Questions Amount": self.getProductQuestionAmount(soup),
-                  "Ratings Distribution": self.getProductRatings(driver),
-                  "Comments": self.getComments(driver, comment_section_link)
-    }
+                "title": self.getProductTitle(soup),
+                "price": self.getProductPrice(soup),
+                "Rating Score": self.getProductRatingScore(soup),
+                "Favourites Amount": self.getProductFavAmount(soup),
+                "Seller Name": self.getProductSellerName(soup),
+                "Comments Amount": self.getProductCommentAmount(soup),
+                "Questions Amount": self.getProductQuestionAmount(soup),
+                "Ratings Distribution": self.getProductRatings(driver),
+                "Comments": self.getComments(driver, comment_section_link)
+            }
             self.UTILIZATION_OBJECT.saveProductInfo(product_info)
             for i in range(2):
-                os.chdir('..')
+                os.chdir('..')  # Navigate back to the root directory
             counter += 1
-            #if counter == 1: break
+            break
         driver.quit()
         return
 
-
     def getProductTitle(self, soup):
         title = soup.find('h1', class_="pr-new-br")
-        product_title = title.find('span').text
+        product_title = title.find('span').text  # Extract product title
         return product_title
 
     def getProductPrice(self, soup):
         description = soup.find('div', class_="product-price-container")
-        price = description.find('span', class_="prc-dsc").text
+        price = description.find('span', class_="prc-dsc").text  # Extract product price
         return price
 
     def getProductCommentLink(self, soup):
         div = soup.find('div', class_="rvw-cnt")
         link = div.find('a', href=True)
-        return link['href']
-
-    def getProductReviewCount(self, soup):
-        review_count = soup.find('span', class_="total-review-count").text
-        return review_count
+        return link['href']  # Extract comment section link
 
     def getProductRatingScore(self, soup):
-        rating = soup.find('div', class_="rating-line-count").text
+        rating = soup.find('div', class_="rating-line-count").text  # Extract rating score
         return rating
 
     def getProductFavAmount(self, soup):
-        fav_amount = soup.find('span', class_="favorite-count").text
+        fav_amount = soup.find('span', class_="favorite-count").text  # Extract favourite count
         return fav_amount
 
     def getProductSellerName(self, soup):
-        seller_name = soup.find('a', class_="seller-name-text").text
+        seller_name = soup.find('a', class_="seller-name-text").text  # Extract seller name
         return seller_name
 
     def getProductCommentAmount(self, soup):
-        comment_amount = soup.find('p', class_="p-reviews-comment-count").text[:-6]
+        comment_amount = soup.find('p', class_="p-reviews-comment-count").text[:-6]  # Extract comment amount
         return comment_amount
 
     def getProductQuestionAmount(self, soup):
-        question_amount = soup.find('span', class_="question-tag__count").text[1:-1]
+        question_amount = soup.find('span', class_="question-tag__count").text[1:-1]  # Extract question amount
         return question_amount
 
     def getProductRatings(self, driver):
         star_amounts = []
         element_to_hover_over = driver.find_element(By.CLASS_NAME, 'review-tooltip')
         hover = ActionChains(driver).move_to_element(element_to_hover_over)
-        hover.perform()
+        hover.perform()  # Hover over the rating element to display tooltip
         time.sleep(1)
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         tooltip_content = soup.find('div', class_='review-tooltip-content')
         star_amounts_div = tooltip_content.find_all('div', class_="pr-rnr-st-c")
         for amount in star_amounts_div:
-            star_amounts.append(amount.text)
-
+            star_amounts.append(amount.text)  # Extract star ratings
         return star_amounts
 
     def getProductPictures(self, driver):
@@ -153,40 +144,37 @@ class WebScraper:
         image_urls = []
         for div in divs:
             if "product-slide video-player" in div.get_attribute('class'):
-                continue
+                continue  # Skip video slides
             img = div.find_element(By.TAG_NAME, 'img')
-            image_urls.append(img.get_attribute('src'))
-
+            image_urls.append(img.get_attribute('src'))  # Collect image URLs
         for index, url in enumerate(image_urls):
-            self.UTILIZATION_OBJECT.downloadImage(url, f'product_image_{index}.jpg')
+            self.UTILIZATION_OBJECT.downloadImage(url, f'product_image_{index}.jpg')  # Download images
 
-
-
-    ### COMMENT FILTERS
     def getComments(self, driver, link):
         comments_array = []
-        for i in [4,0]:
+        for i in [4, 0]:
             counter = 0
             driver.get(f"https://www.trendyol.com{link}")
             driver.execute_script("window.scrollBy(0, document.body.scrollHeight * 0.1);")
-            time.sleep(2)
+            time.sleep(2) # Wait for page to load
             divs = driver.find_elements(By.CLASS_NAME, 'ps-stars__content')
-
-            divs[i].click()
-            if i == 4: star = 1
-            else: star = 5
-            time.sleep(2)
+            divs[i].click()  # Click on the star rating filter
+            if i == 4:
+                star = 1
+            else:
+                star = 5
+            time.sleep(2) # Wait for page to load
             for i in range(3):
-                driver.execute_script("window.scrollBy(0, document.body.scrollHeight * 0.99);")
-                time.sleep(3)
+                driver.execute_script("window.scrollBy(0, document.body.scrollHeight * 0.99);") # Scroll down to load more comments
+                time.sleep(3)  # Wait for page to load
             soup = BeautifulSoup(driver.page_source, 'html.parser')
             comments = soup.find_all('div', class_="comment")
-            time.sleep(3)
+            time.sleep(3) # Wait for page to load
             for index, comment in enumerate(comments):
                 counter += 1
                 comment_content = comment.find('div', class_='comment-text').text
                 thumps_up_amount = comment.find('div', class_="rnr-com-like").text[1:-1]
-                comments_array.append([comment_content, int(thumps_up_amount)])
+                comments_array.append([comment_content, int(thumps_up_amount)])  # Add comment content and likes
                 self.getCommentImages(comment, index, star)
                 if counter >= 100:
                     break
@@ -200,7 +188,7 @@ class WebScraper:
             for image_index, review_image in enumerate(review_images):
                 image_url = review_image.get('style', '')[23:-3]
                 image_filename = f"{star}star_comment_{index + 1}_image_{image_index + 1}.jpg"
-                self.UTILIZATION_OBJECT.downloadImage(image_url, image_filename)
+                self.UTILIZATION_OBJECT.downloadImage(image_url, image_filename)  # Download comment images
 
     def initiateScraping(self):
         LINKS = self.getProductLinks()
@@ -208,10 +196,4 @@ class WebScraper:
 
 if __name__ == '__main__':
     web_scraper = WebScraper()
-    web_scraper.initiateScraping()
-
-
-
-
-
-
+    web_scraper.initiateScraping()  # Start scraping process
